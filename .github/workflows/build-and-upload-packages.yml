@@ -25,6 +25,9 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -38,6 +41,11 @@ jobs:
           else
             python scripts/prepare_packages.py
           fi
+      
+      - name: Compile packages
+        uses: matlab-actions/run-command@v2
+        with:
+          command: "cd scripts; compile_packages"
       
       - name: Bundle and upload packages
         env:
