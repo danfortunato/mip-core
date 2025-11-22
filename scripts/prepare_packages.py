@@ -254,7 +254,6 @@ class PackagePreparer:
                 self._create_mip_json(mhl_build_dir=output_dir_path, package=package, prepare_duration=prepare_duration, compile_duration=0, mhl_filename=mhl_filename)
 
                 print(f"  Successfully prepared {wheel_name}.dir")
-                return True
                 
             except Exception as e:
                 print(f"  Error preparing package: {e}")
@@ -266,6 +265,7 @@ class PackagePreparer:
                     shutil.rmtree(output_dir_path, ignore_errors=True)
                 
                 return False
+        return True
     
     def prepare_all_packages(self):
         """
