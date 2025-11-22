@@ -3,12 +3,12 @@ import os
 import shutil
 import subprocess
 
-class Package:
+class KdtreePackage:
     def __init__(self):
         self.name = "kdtree"
         self.description = "This library provides a minimalist implementation of a kd-tree data structure."
         self.version = "latest"
-        self.build_number = 1
+        self.build_number = 3
         self.dependencies = []
         self.homepage = "https://github.com/taiya/kdtree"
         self.repository = "https://github.com/taiya/kdtree"
@@ -103,3 +103,7 @@ class Package:
                     symbols.append(item[:-4])  # Remove .cpp extension
         
         return symbols
+
+# disable for now because having trouble compiling the package
+# packages = [KdtreePackage()]
+packages = []

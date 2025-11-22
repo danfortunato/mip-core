@@ -4,9 +4,9 @@ Prepare MATLAB packages by building them into .dir directories.
 
 This script:
 1. Iterates through all package directories in packages/
-2. Checks if the package already exists in the cloud bucket (optional skip)
-3. Builds packages that don't exist or have changed
-4. Saves built packages as [wheel_name].dir directories in build/prepared/
+2. For each package, checks if the package already exists in the cloud bucket (optional skip)
+3. Prepares packages that don't exist or have changed
+4. Saves prepared packages as [wheel_name].dir directories in build/prepared/
 
 The output .dir directories can then be processed by bundle_and_upload_packages.py
 """
@@ -121,38 +121,38 @@ class PackagePreparer:
         except requests.RequestException as e:
             print(f"  Error checking existing package: {e}")
             return False
-    
-    def _load_package(self, package_dir):
+
+    def _load_packages(self, package_dir):
         """
-        Dynamically load Package class from package.py in the given directory.
+        Dynamically load packages from packages.py in the given directory.
         
         Args:
             package_dir: Path to the package directory
         
         Returns:
-            Package instance or None if loading fails
+            List of package instances
         """
-        package_py_path = os.path.join(package_dir, 'package.py')
-        
-        if not os.path.exists(package_py_path):
-            print(f"  Warning: No package.py found in {package_dir}")
+        packages_py_path = os.path.join(package_dir, 'packages.py')
+
+        if not os.path.exists(packages_py_path):
+            print(f"  Warning: No packages.py found in {package_dir}")
             return None
         
         try:
             # Load the module
-            spec = importlib.util.spec_from_file_location("package_module", package_py_path)
+            spec = importlib.util.spec_from_file_location("packages_module", packages_py_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             
             # Instantiate Package class
-            if not hasattr(module, 'Package'):
-                print(f"  Warning: No Package class found in {package_py_path}")
+            if not hasattr(module, 'packages'):
+                print(f"  Warning: No packages found in {packages_py_path}")
                 return None
             
-            return module.Package()
+            return [p for p in module.packages]
             
         except Exception as e:
-            print(f"  Error loading package from {package_py_path}: {e}")
+            print(f"  Error loading package from {packages_py_path}: {e}")
             return None
     
     def _create_mip_json(self, *, mhl_build_dir, package, prepare_duration, compile_duration, mhl_filename):
@@ -190,7 +190,7 @@ class PackagePreparer:
         
         return mip_data
     
-    def prepare_package(self, package_dir):
+    def prepare_packages_for_dir(self, package_dir):
         """
         Prepare a single package by building it into a .dir directory.
         
@@ -204,70 +204,68 @@ class PackagePreparer:
         print(f"\nProcessing package: {package_name}")
         
         # Load package
-        package = self._load_package(package_dir)
-        if package is None:
-            return False
-        
-        # Generate filename and wheel name
-        mhl_filename = self._get_mhl_filename(package)
-        wheel_name = self._get_wheel_name(package)
-        print(f"  Wheel name: {wheel_name}")
-        
-        # Check if package already exists (unless force flag is set)
-        if not self.force and self._check_existing_package(mhl_filename, package):
-            print(f"  Skipping - package already up to date")
-            return True
-        
-        if self.dry_run:
-            print(f"  [DRY RUN] Would prepare {wheel_name}.dir")
-            return True
-        
-        # Create output directory path
-        output_dir_path = os.path.join(self.output_dir, f"{wheel_name}.dir")
-        
-        # Remove existing .dir if it exists
-        if os.path.exists(output_dir_path):
-            print(f"  Removing existing directory: {output_dir_path}")
-            shutil.rmtree(output_dir_path)
-        
-        print(f"  Output directory: {output_dir_path}")
-        
-        try:
-            # Create the .dir directory
-            os.makedirs(output_dir_path)
+        packages0 = self._load_packages(package_dir)
+        for package in packages0:
+            # Generate filename and wheel name
+            mhl_filename = self._get_mhl_filename(package)
+            wheel_name = self._get_wheel_name(package)
+            print(f"  Wheel name: {wheel_name}")
             
-            # Build the package
-            print(f"  Building package...")
-            build_start = time.time()
+            # Check if package already exists (unless force flag is set)
+            if not self.force and self._check_existing_package(mhl_filename, package):
+                print(f"  Skipping - package already up to date")
+                return True
             
-            # Change to output directory for build
-            original_dir = os.getcwd()
-            os.chdir(self.output_dir)
+            if self.dry_run:
+                print(f"  [DRY RUN] Would prepare {wheel_name}.dir")
+                return True
+            
+            # Create output directory path
+            output_dir_path = os.path.join(self.output_dir, f"{wheel_name}.dir")
+            
+            # Remove existing .dir if it exists
+            if os.path.exists(output_dir_path):
+                print(f"  Removing existing directory: {output_dir_path}")
+                shutil.rmtree(output_dir_path)
+            
+            print(f"  Output directory: {output_dir_path}")
             
             try:
-                package.prepare(output_dir_path)
-                prepare_duration = time.time() - build_start
-                print(f"  Prepare completed in {prepare_duration:.2f} seconds")
-            finally:
-                os.chdir(original_dir)
-            
-            # Create mip.json inside the .dir
-            print(f"  Creating mip.json...")
-            self._create_mip_json(mhl_build_dir=output_dir_path, package=package, prepare_duration=prepare_duration, compile_duration=0, mhl_filename=mhl_filename)
+                # Create the .dir directory
+                os.makedirs(output_dir_path)
+                
+                # Build the package
+                print(f"  Building package...")
+                build_start = time.time()
+                
+                # Change to output directory for build
+                original_dir = os.getcwd()
+                os.chdir(self.output_dir)
+                
+                try:
+                    package.prepare(output_dir_path)
+                    prepare_duration = time.time() - build_start
+                    print(f"  Prepare completed in {prepare_duration:.2f} seconds")
+                finally:
+                    os.chdir(original_dir)
+                
+                # Create mip.json inside the .dir
+                print(f"  Creating mip.json...")
+                self._create_mip_json(mhl_build_dir=output_dir_path, package=package, prepare_duration=prepare_duration, compile_duration=0, mhl_filename=mhl_filename)
 
-            print(f"  Successfully prepared {wheel_name}.dir")
-            return True
-            
-        except Exception as e:
-            print(f"  Error preparing package: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Clean up failed directory
-            if os.path.exists(output_dir_path):
-                shutil.rmtree(output_dir_path, ignore_errors=True)
-            
-            return False
+                print(f"  Successfully prepared {wheel_name}.dir")
+                return True
+                
+            except Exception as e:
+                print(f"  Error preparing package: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                # Clean up failed directory
+                if os.path.exists(output_dir_path):
+                    shutil.rmtree(output_dir_path, ignore_errors=True)
+                
+                return False
     
     def prepare_all_packages(self):
         """
@@ -299,7 +297,7 @@ class PackagePreparer:
         # Prepare each package
         all_success = True
         for package_dir in sorted(package_dirs):
-            success = self.prepare_package(package_dir)
+            success = self.prepare_packages_for_dir(package_dir)
             if not success:
                 print(f"\nError: Preparation failed for {os.path.basename(package_dir)}")
                 all_success = False

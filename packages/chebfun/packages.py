@@ -5,12 +5,12 @@ import zipfile
 import shutil
 from mip_build_helpers import collect_exposed_symbols_top_level
 
-class Package:
+class ChebfunPackage:
     def __init__(self):
         self.name = "chebfun"
         self.description = "Chebfun is an open-source software system for numerical computing with functions."
         self.version = "latest"
-        self.build_number = 1
+        self.build_number = 3
         self.dependencies = []
         self.homepage = "https://github.com/chebfun/chebfun"
         self.repository = "https://github.com/chebfun/chebfun"
@@ -52,3 +52,4 @@ class Package:
         print("Collecting exposed symbols...")
         self.exposed_symbols = collect_exposed_symbols_top_level(chebfun_dir, "chebfun")
 
+packages = [ChebfunPackage()]

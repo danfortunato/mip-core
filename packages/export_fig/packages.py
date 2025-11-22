@@ -3,12 +3,12 @@ import os
 import shutil
 from mip_build_helpers import collect_exposed_symbols_top_level
 
-class Package:
+class ExportFigPackage:
     def __init__(self):
         self.name = "export_fig"
         self.description = "A toolbox for exporting figures from MATLAB to standard image and document formats nicely."
         self.version = "3.54"
-        self.build_number = 1
+        self.build_number = 3
         self.dependencies = []
         self.homepage = "https://github.com/altmany/export_fig"
         self.repository = "https://github.com/altmany/export_fig"
@@ -50,3 +50,5 @@ class Package:
         # Collect exposed symbols
         print("Collecting exposed symbols...")
         self.exposed_symbols = collect_exposed_symbols_top_level(export_fig_dir, "export_fig")
+
+packages = [ExportFigPackage()]
