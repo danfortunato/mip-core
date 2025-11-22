@@ -27,6 +27,8 @@ jobs:
       
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
+        with:
+          cache: true
       
       - name: Install dependencies
         run: |
@@ -54,6 +56,14 @@ jobs:
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
         run: |
           python scripts/bundle_and_upload_packages.py
+      
+      - name: Deploy index.json to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/gh-pages
+          destination_dir: .
+          keep_files: false
       
       - name: Upload prepared packages as artifacts
         if: always()

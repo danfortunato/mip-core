@@ -257,15 +257,16 @@ class PackageBundler:
             except Exception:
                 pass  # Skip if we can't fetch
     
-    def _create_and_upload_index(self):
+    def _create_index(self):
         """
-        Create an index.json file containing all package metadata and upload it.
+        Create an index.json file containing all package metadata and save it locally.
+        This file will be deployed to GitHub Pages by the CI workflow.
         """
         if self.dry_run:
-            print("\n[DRY RUN] Would create and upload index.json")
+            print("\n[DRY RUN] Would create index.json for GitHub Pages")
             return True
         
-        print("\nCreating package index...")
+        print("\nCreating package index for GitHub Pages...")
         
         # Collect any existing packages that weren't rebuilt
         self._collect_existing_packages()
@@ -277,27 +278,26 @@ class PackageBundler:
             'last_updated': datetime.utcnow().isoformat() + 'Z'
         }
         
-        # Create temporary file for index.json
-        temp_dir = tempfile.mkdtemp(prefix='mip_index_')
+        # Create output directory for GitHub Pages
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        gh_pages_dir = os.path.join(project_root, 'build', 'gh-pages')
+        os.makedirs(gh_pages_dir, exist_ok=True)
+        
         try:
-            index_path = os.path.join(temp_dir, 'index.json')
+            index_path = os.path.join(gh_pages_dir, 'index.json')
             with open(index_path, 'w') as f:
                 json.dump(index_data, f, indent=2)
             
-            # Upload to R2
-            index_key = "core/index.json"
-            print(f"  Uploading index.json with {len(self.package_metadata)} package(s)...")
-            self._upload_to_r2(index_path, index_key)
-            print(f"  Index uploaded to s3://{self.bucket_name}/{index_key}")
+            print(f"  Created index.json with {len(self.package_metadata)} package(s)")
+            print(f"  Saved to: {index_path}")
+            print(f"  This will be deployed to GitHub Pages")
             
             return True
         except Exception as e:
-            print(f"  Error creating/uploading index: {e}")
+            print(f"  Error creating index: {e}")
             import traceback
             traceback.print_exc()
             return False
-        finally:
-            shutil.rmtree(temp_dir, ignore_errors=True)
     
     def bundle_and_upload_all(self):
         """
@@ -333,11 +333,11 @@ class PackageBundler:
                 all_success = False
                 break  # Abort on first failure
         
-        # Create and upload index.json
+        # Create index.json for GitHub Pages
         if all_success:
-            index_success = self._create_and_upload_index()
+            index_success = self._create_index()
             if not index_success:
-                print("\nWarning: Failed to create/upload index.json")
+                print("\nWarning: Failed to create index.json")
                 all_success = False
         
         return all_success
