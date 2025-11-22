@@ -8,7 +8,7 @@ class Package:
         self.name = "export_fig"
         self.description = "A toolbox for exporting figures from MATLAB to standard image and document formats nicely."
         self.version = "3.54"
-        self.build_number = 0
+        self.build_number = 1
         self.dependencies = []
         self.homepage = "https://github.com/altmany/export_fig"
         self.repository = "https://github.com/altmany/export_fig"
@@ -16,9 +16,9 @@ class Package:
         self.abi_tag = "none"
         self.platform_tag = "any"
 
-        # The following are filled in during build
+        # The following are filled in during prepare
         self.exposed_symbols = []
-    def build(self, mhl_dir: str):
+    def prepare(self, mhl_dir: str):
 
         download_file = "export_fig_download.zip"
         download_url = f"https://github.com/altmany/export_fig/archive/refs/tags/v{self.version}.zip"

@@ -1,16 +1,18 @@
-# Build and Upload Packages Script
+# Build and Upload Packages Scripts
 
-This directory contains the `build_and_upload_packages.py` script that builds MATLAB packages (.mhl files) and uploads them to a Cloudflare R2 bucket.
+This directory contains scripts for building MATLAB packages (.mhl files) and uploading them to a Cloudflare R2 bucket.
 
-## Overview
+## Scripts Overview
 
-The script:
-1. Scans all directories in `packages/`
-2. Dynamically loads the `Package` class from each `package.py`
-3. Generates .mhl filenames in the format: `[name]-[version]-[matlab_tag]-[abi_tag]-[platform_tag].mhl`
-4. Checks if packages already exist in the cloud bucket
-5. Builds only changed or new packages
-6. Uploads built packages and metadata to Cloudflare R2
+The build and upload process has been split into two scripts for flexibility:
+
+1. **`prepare_packages.py`** - Builds packages into `.dir` directories
+2. **`bundle_and_upload_packages.py`** - Zips `.dir` directories and uploads to R2
+
+This separation allows for:
+- Building packages once and uploading multiple times
+- Inspecting built packages before upload
+- Running builds and uploads at different times or on different machines
 
 ## Requirements
 
@@ -22,7 +24,7 @@ pip install -e mip_build_helpers
 
 ### Environment Variables
 
-The script requires the following environment variables for Cloudflare R2 access:
+The upload script requires the following environment variables for Cloudflare R2 access:
 
 - `AWS_ACCESS_KEY_ID` - Your Cloudflare R2 access key ID
 - `AWS_SECRET_ACCESS_KEY` - Your Cloudflare R2 secret access key
@@ -30,70 +32,107 @@ The script requires the following environment variables for Cloudflare R2 access
 
 ## Usage
 
-### Basic Usage
+### Two-Step Process (Recommended)
+
+#### Step 1: Prepare Packages
 ```bash
-python scripts/build_and_upload_packages.py
+python scripts/prepare_packages.py
 ```
 
 This will:
 - Check each package against the cloud bucket
-- Skip packages that haven't changed
-- Build and upload only new or modified packages
+- Skip packages that haven't changed (unless `--force` is used)
+- Build packages into `build/prepared/[wheel_name].dir` directories
+- Each `.dir` contains the built package contents and a `mip.json` metadata file
 
-### Command Line Options
+#### Step 2: Bundle and Upload
+```bash
+python scripts/bundle_and_upload_packages.py
+```
+
+This will:
+- Find all `.dir` directories in `build/prepared/`
+- Zip each into a `.mhl` file
+- Upload both `.mhl` and `.mip.json` files to R2
+- Create and upload a consolidated `index.json`
+
+## Command Line Options
+
+### prepare_packages.py
 
 #### Dry Run Mode
 ```bash
-python scripts/build_and_upload_packages.py --dry-run
+python scripts/prepare_packages.py --dry-run
 ```
-Simulates the build process without actually building or uploading anything. Useful for testing.
+Simulates the build process without actually building anything.
 
 #### Force Rebuild
 ```bash
-python scripts/build_and_upload_packages.py --force
+python scripts/prepare_packages.py --force
 ```
 Forces rebuilding of all packages, even if they already exist in the bucket with matching metadata.
 
-#### Don't Keep Working Directories
+#### Custom Output Directory
 ```bash
-python scripts/build_and_upload_packages.py --no-keep-dirs
+python scripts/prepare_packages.py --output-dir /path/to/output
 ```
-Cleans up temporary working directories after build. By default, directories are kept for inspection.
+Specifies where to create the `.dir` directories (default: `build/prepared`).
 
-### Combining Options
+### bundle_and_upload_packages.py
+
+#### Dry Run Mode
 ```bash
-python scripts/build_and_upload_packages.py --force --dry-run
+python scripts/bundle_and_upload_packages.py --dry-run
 ```
+Simulates the upload process without actually uploading anything.
+
+#### Custom Input Directory
+```bash
+python scripts/bundle_and_upload_packages.py --input-dir /path/to/prepared
+```
+Specifies where to find the `.dir` directories (default: `build/prepared`).
 
 ## How It Works
 
-### Smart Caching
+### Step 1: Package Preparation
+
+#### Smart Caching
 
 Before building a package, the script:
 1. Generates the expected .mhl filename
-2. Checks if `[filename].mip.json` exists at `https://mip-packages.neurosift.app/packages/core/`
+2. Checks if `[filename].mip.json` exists at `https://mip-packages.neurosift.app/core/packages/`
 3. Compares metadata fields: `name`, `description`, `version`, `build_number`, `dependencies`, `homepage`, `repository`
 4. Skips build if all fields match
 
-### Build Process
+#### Build Process
 
 For each package that needs building:
-1. Creates a temporary working directory (kept by default for inspection)
-2. Creates `mhl_build` subdirectory
-3. Calls `package.build(mhl_build_dir)`
-4. Generates `mip.json` with full metadata including:
+1. Creates a `[wheel_name].dir` directory in `build/prepared/`
+2. Calls `package.build(dir_path)` to populate the directory
+3. Generates `mip.json` with full metadata including:
    - Core package info (name, description, version, etc.)
-   - Build metadata (timestamp, build_duration)
+   - Build metadata (timestamp, prepare duration, compile duration)
    - Platform tags (matlab_tag, abi_tag, platform_tag)
    - Exposed symbols list
-5. ZIPs the `mhl_build` directory into a `.mhl` file
-6. Uploads both the `.mhl` file and `.mip.json` to R2
+
+The `.dir` directories are kept for inspection and can be processed later by the upload script.
+
+### Step 2: Bundle and Upload
+
+For each `.dir` directory:
+1. Reads the `mip.json` metadata file
+2. Creates a `.mhl` file by zipping the directory contents
+3. Creates a standalone `[filename].mip.json` file
+4. Uploads both files to Cloudflare R2
+5. Collects metadata from all packages (including existing ones from bucket)
+6. Creates and uploads a consolidated `index.json`
 
 ### Error Handling
 
-- The script aborts on the first package build failure
-- Temporary directories are kept by default to help debug failures
+- Both scripts abort on the first failure
 - Full stack traces are printed for debugging
+- The prepare script cleans up failed `.dir` directories
+- The bundle script uses temporary directories that are automatically cleaned up
 
 ## GitHub Actions Integration
 
@@ -144,38 +183,73 @@ class Package:
         pass
 ```
 
-## Output
+## Output Examples
 
-### Successful Build
+### Step 1: Package Preparation
+
 ```
-Starting package build process...
-Found 1 package(s)
+Starting package preparation process...
+Found 3 package(s)
+Output directory: /path/to/build/prepared
 
 Processing package: chebfun
-  MHL filename: chebfun-latest-any-none-any.mhl
+  Wheel name: chebfun-1.0.0-R2023b-mip1-any
   Package not found in bucket
-  Working directory: /tmp/mip_build_chebfun_xyz123
+  Output directory: /path/to/build/prepared/chebfun-1.0.0-R2023b-mip1-any.dir
   Building package...
   Build completed in 12.34 seconds
   Creating mip.json...
+  Successfully prepared chebfun-1.0.0-R2023b-mip1-any.dir
+
+✓ All packages prepared successfully
+```
+
+### Step 2: Bundle and Upload
+
+```
+Starting package bundle and upload process...
+Found 3 .dir package(s)
+Input directory: /path/to/build/prepared
+
+Processing: chebfun-1.0.0-R2023b-mip1-any.dir
+  MHL filename: chebfun-1.0.0-R2023b-mip1-any.mhl
   Creating .mhl file...
   Uploading to R2...
-  Uploaded to s3://mip-packages/packages/core/chebfun-latest-any-none-any.mhl
-  Uploaded to s3://mip-packages/packages/core/chebfun-latest-any-none-any.mhl.mip.json
-  Successfully built and uploaded chebfun-latest-any-none-any.mhl
+  Uploaded to s3://mip-packages/core/packages/chebfun-1.0.0-R2023b-mip1-any.mhl
+  Uploaded to s3://mip-packages/core/packages/chebfun-1.0.0-R2023b-mip1-any.mhl.mip.json
+  Successfully bundled and uploaded chebfun-1.0.0-R2023b-mip1-any.mhl
 
-============================================================
-Working directories kept for inspection:
-  /tmp/mip_build_chebfun_xyz123
-============================================================
+Creating package index...
+  Uploading index.json with 3 package(s)...
+  Index uploaded to s3://mip-packages/core/index.json
 
-✓ All packages processed successfully
+✓ All packages bundled and uploaded successfully
 ```
 
 ### Cached Package (No Rebuild)
+
 ```
 Processing package: chebfun
-  MHL filename: chebfun-latest-any-none-any.mhl
+  Wheel name: chebfun-1.0.0-R2023b-mip1-any
   Package exists with matching metadata
   Skipping - package already up to date
 ```
+
+## Directory Structure
+
+After running the prepare script:
+
+```
+build/
+└── prepared/
+    ├── chebfun-1.0.0-R2023b-mip1-any.dir/
+    │   ├── mip.json
+    │   └── [package contents]
+    ├── export_fig-1.0.0-R2023b-mip1-any.dir/
+    │   ├── mip.json
+    │   └── [package contents]
+    └── surfacefun-1.0.0-R2023b-mip1-any.dir/
+        ├── mip.json
+        └── [package contents]
+```
+

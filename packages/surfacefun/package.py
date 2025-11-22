@@ -8,7 +8,7 @@ class Package:
         self.name = "surfacefun"
         self.description = "Surfacefun is a MATLAB package for numerically computing with functions on surfaces with high-order accuracy."
         self.version = "latest"
-        self.build_number = 1
+        self.build_number = 2
         self.dependencies = ["chebfun"]
         self.homepage = "https://github.com/danfortunato/surfacefun"
         self.repository = "https://github.com/danfortunato/surfacefun"
@@ -16,9 +16,9 @@ class Package:
         self.abi_tag = "none"
         self.platform_tag = "any"
 
-        # The following are filled in during build
+        # The following are filled in during prepare
         self.exposed_symbols = []
-    def build(self, mhl_dir: str):
+    def prepare(self, mhl_dir: str):
         # Clone the repository
         import subprocess
 

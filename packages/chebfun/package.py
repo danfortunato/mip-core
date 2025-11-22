@@ -10,7 +10,7 @@ class Package:
         self.name = "chebfun"
         self.description = "Chebfun is an open-source software system for numerical computing with functions."
         self.version = "latest"
-        self.build_number = 0
+        self.build_number = 1
         self.dependencies = []
         self.homepage = "https://github.com/chebfun/chebfun"
         self.repository = "https://github.com/chebfun/chebfun"
@@ -18,9 +18,9 @@ class Package:
         self.abi_tag = "none"
         self.platform_tag = "any"
 
-        # The following are filled in during build
+        # The following are filled in during prepare
         self.exposed_symbols = []
-    def build(self, mhl_dir: str):
+    def prepare(self, mhl_dir: str):
         url = "https://github.com/chebfun/chebfun/archive/master.zip"
         download_file = "chebfun_download.zip"
 
