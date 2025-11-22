@@ -8,7 +8,7 @@ class Package:
         self.name = "surfacefun"
         self.description = "Surfacefun is a MATLAB package for numerically computing with functions on surfaces with high-order accuracy."
         self.version = "latest"
-        self.build_number = 0
+        self.build_number = 1
         self.dependencies = ["chebfun"]
         self.homepage = "https://github.com/danfortunato/surfacefun"
         self.repository = "https://github.com/danfortunato/surfacefun"
@@ -49,10 +49,9 @@ class Package:
             f.write("% Add surfacefun to the MATLAB path and run setup\n")
             f.write("surfacefun_path = fullfile(fileparts(mfilename('fullpath')), 'surfacefun');\n")
             f.write("addpath(surfacefun_path);\n")
-            f.write("setup_file = fullfile(surfacefun_path, 'setup.m');\n")
-            f.write("if exist(setup_file, 'file')\n")
-            f.write("    run(setup_file);\n")
-            f.write("end\n")
+            # add surfacefun/tools to the path
+            f.write("tools_path = fullfile(surfacefun_path, 'tools');\n")
+            f.write("addpath(tools_path);\n")
         # Collect exposed symbols
         print("Collecting exposed symbols...")
         
