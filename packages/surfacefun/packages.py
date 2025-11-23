@@ -7,7 +7,7 @@ class SurfacefunPackage:
     def __init__(self):
         self.name = "surfacefun"
         self.description = "Surfacefun is a MATLAB package for numerically computing with functions on surfaces with high-order accuracy."
-        self.version = "latest"
+        self.version = "unspecified"
         self.build_number = 3
         self.dependencies = ["chebfun"]
         self.homepage = "https://github.com/danfortunato/surfacefun"

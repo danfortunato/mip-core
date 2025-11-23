@@ -9,7 +9,7 @@ class ChebfunPackage:
     def __init__(self):
         self.name = "chebfun"
         self.description = "Chebfun is an open-source software system for numerical computing with functions."
-        self.version = "latest"
+        self.version = "unspecified"
         self.build_number = 3
         self.dependencies = []
         self.homepage = "https://github.com/chebfun/chebfun"

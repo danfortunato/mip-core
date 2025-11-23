@@ -7,7 +7,7 @@ class KdtreePackage:
     def __init__(self):
         self.name = "kdtree"
         self.description = "This library provides a minimalist implementation of a kd-tree data structure."
-        self.version = "latest"
+        self.version = "unspecified"
         self.build_number = 3
         self.dependencies = []
         self.homepage = "https://github.com/taiya/kdtree"
