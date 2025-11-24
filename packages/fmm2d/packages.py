@@ -5,7 +5,7 @@ import subprocess
 from mip_build_helpers import get_current_platform_tag
 
 class Fmm2dPackage:
-    def __init__(self):
+    def __init__(self, *, platform_tag: str):
         self.name = "fmm2d"
         self.description = "Flatiron Institute Fast Multipole Methods in 2D"
         self.version = "unspecified"
@@ -15,16 +15,14 @@ class Fmm2dPackage:
         self.repository = "https://github.com/flatironinstitute/fmm2d"
         self.matlab_tag = "any"
         self.abi_tag = "none"
-        self.platform_tag = "any"
+        self.platform_tag = platform_tag
 
         # The following are filled in during prepare
         self.exposed_symbols = []
     
     def prepare(self, mhl_dir: str):
-        platform_tag = get_current_platform_tag()
-        if platform_tag != 'linux_x86_64':
+        if self.platform_tag != 'linux_x86_64':
             raise RuntimeError(f"Fmm2dPackage can only be built on linux_x86_64, current platform is {platform_tag}")
-        self.platform_tag = platform_tag
 
         # Clone the repository
         repository_url = self.repository
@@ -136,6 +134,6 @@ class Fmm2dPackage:
 platform_tag = get_current_platform_tag()
 
 if os.environ.get('BUILD_TYPE') == 'linux_workstation' and platform_tag == 'linux_x86_64':
-    packages = [Fmm2dPackage()]
+    packages = [Fmm2dPackage(platform_tag=platform_tag)]
 else:
     packages = []

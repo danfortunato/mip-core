@@ -18,3 +18,6 @@ matlab -nodisplay -nosplash -r "try, compile_packages; catch ME, disp(getReport(
 echo "Bundling and uploading packages using bundle_and_upload_packages.py..."
 python bundle_and_upload_packages.py
 
+echo "Assemble index using assemble_index.py..."
+python assemble_index.py
+
