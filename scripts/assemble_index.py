@@ -6,7 +6,8 @@ This script:
 1. Lists all .mhl.mip.json files in the R2 bucket
 2. Downloads each .mip.json file
 3. Assembles them into a consolidated index.json
-4. Saves to build/gh-pages/index.json for GitHub Pages deployment
+4. Generates a human-readable index.md
+5. Saves both to build/gh-pages/ for GitHub Pages deployment
 
 This script should be run after bundle_and_upload_packages.py
 """
@@ -124,6 +125,12 @@ class IndexAssembler:
                 mhl_filename = filename[:-9]  # Remove '.mip.json'
                 metadata['mhl_url'] = f"{self.base_url}/{mhl_filename}"
             
+            # Also add mip_json_url for easy access to metadata
+            if 'mip_json_url' not in metadata:
+                filename = os.path.basename(key)
+                mhl_filename = filename[:-9]  # Remove '.mip.json'
+                metadata['mip_json_url'] = f"{self.base_url}/{mhl_filename}.mip.json"
+            
             return metadata
             
         except ClientError as e:
@@ -132,6 +139,102 @@ class IndexAssembler:
         except json.JSONDecodeError as e:
             print(f"  Warning: Failed to parse JSON from {key}: {e}")
             return None
+    
+    def _generate_index_md(self, package_metadata, last_updated):
+        """
+        Generate a human-readable markdown index from package metadata.
+        
+        Args:
+            package_metadata: List of package metadata dicts
+            last_updated: ISO timestamp of when index was updated
+        
+        Returns:
+            Markdown string
+        """
+        lines = []
+        lines.append("# MATLAB Package Index")
+        lines.append("")
+        lines.append("Available MATLAB packages for installation via MIP.")
+        lines.append("")
+        
+        if package_metadata:
+            # Sort packages alphabetically by name
+            sorted_packages = sorted(package_metadata, key=lambda p: p.get('name', '').lower())
+            
+            lines.append(f"**Total packages:** {len(sorted_packages)}")
+            lines.append(f"**Last updated:** {last_updated}")
+            lines.append("")
+            
+            # Create table header
+            lines.append("| Package | Version | Description | Platform | Download |")
+            lines.append("|---------|---------|-------------|----------|----------|")
+            
+            # Add each package as a table row
+            for pkg in sorted_packages:
+                name = pkg.get('name', 'unknown')
+                version = pkg.get('version', 'unknown')
+                description = pkg.get('description', '')
+                homepage = pkg.get('homepage', '')
+                mhl_url = pkg.get('mhl_url', '')
+                mip_json_url = pkg.get('mip_json_url', '')
+                
+                # Truncate long descriptions
+                if len(description) > 80:
+                    description = description[:77] + "..."
+                
+                # Create package name link (to homepage if available)
+                if homepage:
+                    name_link = f"[{name}]({homepage})"
+                else:
+                    name_link = name
+                
+                # Determine platform info
+                matlab_tag = pkg.get('matlab_tag', 'any')
+                abi_tag = pkg.get('abi_tag', 'none')
+                platform_tag = pkg.get('platform_tag', 'any')
+                
+                # Simplify platform display
+                if matlab_tag == 'any' and abi_tag == 'none' and platform_tag == 'any':
+                    platform_info = "All"
+                else:
+                    platform_parts = []
+                    if matlab_tag != 'any':
+                        platform_parts.append(f"MATLAB {matlab_tag}")
+                    if platform_tag != 'any':
+                        platform_parts.append(platform_tag)
+                    platform_info = ", ".join(platform_parts) if platform_parts else "All"
+                
+                # Create download links
+                download_links = []
+                if mhl_url:
+                    download_links.append(f"[.mhl]({mhl_url})")
+                if mip_json_url:
+                    download_links.append(f"[metadata]({mip_json_url})")
+                download_cell = " ".join(download_links) if download_links else "N/A"
+                
+                # Escape pipe characters in descriptions
+                description = description.replace('|', '\\|')
+                
+                lines.append(f"| {name_link} | {version} | {description} | {platform_info} | {download_cell} |")
+            
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+            lines.append("## Installation")
+            lines.append("")
+            lines.append("To install packages, use the MIP package manager:")
+            lines.append("")
+            lines.append("```matlab")
+            lines.append("% Install a package")
+            lines.append("mip install <package-name>")
+            lines.append("```")
+            lines.append("")
+            lines.append("For more information, visit the [MIP documentation](https://github.com/mip-org/mip-core).")
+        else:
+            lines.append("No packages available yet.")
+        
+        lines.append("")
+        return "\n".join(lines)
     
     def assemble_index(self):
         """
@@ -185,18 +288,50 @@ class IndexAssembler:
         os.makedirs(gh_pages_dir, exist_ok=True)
         
         try:
+            # Save index.json
             index_path = os.path.join(gh_pages_dir, 'index.json')
             with open(index_path, 'w') as f:
                 json.dump(index_data, f, indent=2)
             
             print(f"\n✓ Created index.json with {len(package_metadata)} package(s)")
             print(f"  Saved to: {index_path}")
-            print(f"  This will be deployed to GitHub Pages")
+            
+            # Generate and save index.md
+            index_md_path = os.path.join(gh_pages_dir, 'index.md')
+            markdown_content = self._generate_index_md(
+                package_metadata, 
+                index_data['last_updated']
+            )
+            with open(index_md_path, 'w') as f:
+                f.write(markdown_content)
+            
+            print(f"✓ Created index.md")
+            print(f"  Saved to: {index_md_path}")
+            
+            # Create Jekyll configuration for GitHub Pages
+            config_path = os.path.join(gh_pages_dir, '_config.yml')
+            config_content = """# GitHub Pages configuration for MIP package index
+title: "MATLAB Package Index"
+description: "Available MATLAB packages for installation via MIP"
+
+# Use index.md as the homepage
+include:
+  - index.md
+  - index.json
+
+# Enable GitHub Pages theme (minimal for clean display)
+theme: minima
+"""
+            with open(config_path, 'w') as f:
+                f.write(config_content)
+            
+            print(f"✓ Created _config.yml for Jekyll")
+            print(f"  All files will be deployed to GitHub Pages")
             
             return True
             
         except Exception as e:
-            print(f"\nError creating index.json: {e}")
+            print(f"\nError creating index files: {e}")
             import traceback
             traceback.print_exc()
             return False
