@@ -13,7 +13,7 @@ echo "Preparing packages using prepare_packages.py..."
 python prepare_packages.py
 
 echo "Running compile_packages.m from MATLAB..."
-matlab -nodisplay -nosplash -r "try, compile_packages; catch ME, disp(getReport(ME)), exit(1), end, exit(0);"
+matlab -batch "compile_packages"
 
 echo "Bundling and uploading packages using bundle_and_upload_packages.py..."
 python bundle_and_upload_packages.py

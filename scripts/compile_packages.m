@@ -33,8 +33,7 @@ function compile_packages()
     
     if isempty(dirPaths)
         fprintf('No .dir directories found in %s\n', preparedDir);
-        % Explicitly exit MATLAB to avoid hanging
-        exit(0);
+        return;
     end
     
     fprintf('Found %d .dir package(s)\n', length(dirPaths));
@@ -64,9 +63,6 @@ function compile_packages()
     
     fprintf('\nPackages requiring compilation: %d\n', packagesWithCompile);
     fprintf('\n✓ All packages compiled successfully\n');
-
-    % explicitly exit MATLAB to avoid hanging
-    exit(0);
 end
 
 function success = compilePackage(dirPath, dirName)
