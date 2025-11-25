@@ -2,7 +2,7 @@
 import os
 import shutil
 import subprocess
-from mip_build_helpers import get_current_platform_tag, clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_setup_m
+from mip_build_helpers import get_current_platform_tag, clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_load_m_and_unload_m
 
 class Fmm2dPackage:
     def __init__(self, *, platform_tag: str):
@@ -70,8 +70,8 @@ class Fmm2dPackage:
         print(f"Cleaning up {clone_dir}...")
         shutil.rmtree(clone_dir)
 
-        # Create setup.m
-        create_setup_m(mhl_dir, "fmm2d")
+        # Create load.m
+        create_load_m_and_unload_m(mhl_dir, "fmm2d")
 
         # Collect exposed symbols from fmm2d directory (including .m and .c files)
         print("Collecting exposed symbols...")

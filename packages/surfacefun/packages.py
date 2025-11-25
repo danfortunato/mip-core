@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_multiple_paths, clone_repository_and_remove_git, create_setup_m
+from mip_build_helpers import collect_exposed_symbols_multiple_paths, clone_repository_and_remove_git, create_load_m_and_unload_m
 
 class SurfacefunPackage:
     def __init__(self):
@@ -29,7 +29,7 @@ class SurfacefunPackage:
         print(f'Moving surfacefun_clone to surfacefun...')
         shutil.move(clone_dir, surfacefun_dir)
 
-        create_setup_m(mhl_dir, "surfacefun", subdirs=['tools'])
+        create_load_m_and_unload_m(mhl_dir, "surfacefun", subdirs=['tools'])
         # Collect exposed symbols
         print("Collecting exposed symbols...")
         

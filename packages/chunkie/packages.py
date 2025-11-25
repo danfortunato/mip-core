@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_top_level, clone_repository_and_remove_git, create_setup_m
+from mip_build_helpers import collect_exposed_symbols_top_level, clone_repository_and_remove_git, create_load_m_and_unload_m
 
 class ChunkiePackage:
     def __init__(self):
@@ -39,8 +39,8 @@ class ChunkiePackage:
         print(f"Cleaning up {clone_dir}...")
         shutil.rmtree(clone_dir)
 
-        # Create setup.m file that just adds the chunkie directory to path
-        create_setup_m(mhl_dir, "chunkie")
+        # Create load.m file that just adds the chunkie directory to path
+        create_load_m_and_unload_m(mhl_dir, "chunkie")
 
         # Collect exposed symbols recursively
         print("Collecting exposed symbols...")

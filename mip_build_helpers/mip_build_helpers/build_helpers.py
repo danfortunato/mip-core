@@ -232,43 +232,6 @@ def collect_exposed_symbols_multiple_paths(package_dirs, base_paths):
     
     return sorted(symbols)
 
-
-def create_setup_m(mhl_dir, package_name, subdirs=None, run_startup=False):
-    """
-    Create a setup.m file that adds package directories to the MATLAB path.
-    
-    Args:
-        mhl_dir: The MHL directory where setup.m will be created
-        package_name: The name of the package (used for the main directory)
-        subdirs: List of subdirectories to add to path (in addition to main package dir)
-                Example: ['tools'] will add both package_name and package_name/tools
-                If None, only the main package directory is added
-        run_startup: If True, checks for and runs a startup.m file in the package directory
-    """
-    setup_m_path = os.path.join(mhl_dir, "setup.m")
-    print("Creating setup.m...")
-    
-    with open(setup_m_path, 'w') as f:
-        f.write(f"% Add {package_name} to the MATLAB path\n")
-        
-        # Add main package directory
-        f.write(f"{package_name}_path = fullfile(fileparts(mfilename('fullpath')), '{package_name}');\n")
-        f.write(f"addpath({package_name}_path);\n")
-        
-        # Add subdirectories if specified
-        if subdirs:
-            for subdir in subdirs:
-                f.write(f"% Add {package_name}/{subdir} to the path\n")
-                f.write(f"{subdir}_path = fullfile({package_name}_path, '{subdir}');\n")
-                f.write(f"addpath({subdir}_path);\n")
-        
-        # Run startup.m if requested
-        if run_startup:
-            f.write(f"startup_file = fullfile({package_name}_path, 'startup.m');\n")
-            f.write("if exist(startup_file, 'file')\n")
-            f.write("    run(startup_file);\n")
-            f.write("end\n")
-
 def create_mip_json(mip_json_path, package_name=None, dependencies=None, exposed_symbols=None, version=None):
     """
     Create a mip.json file with package name, dependencies, exposed_symbols and version.

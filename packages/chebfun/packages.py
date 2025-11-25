@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_top_level, download_and_extract_zip, create_setup_m
+from mip_build_helpers import collect_exposed_symbols_top_level, download_and_extract_zip, create_load_m_and_unload_m
 
 class ChebfunPackage:
     def __init__(self):
@@ -27,7 +27,7 @@ class ChebfunPackage:
         print(f'Moving chebfun-master to chebfun...')
         shutil.move("chebfun-master", chebfun_dir)
 
-        create_setup_m(mhl_dir, "chebfun")
+        create_load_m_and_unload_m(mhl_dir, "chebfun")
 
         # Collect exposed symbols
         print("Collecting exposed symbols...")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_recursive, clone_repository_and_remove_git, create_setup_m
+from mip_build_helpers import collect_exposed_symbols_recursive, clone_repository_and_remove_git, create_load_m_and_unload_m
 
 class FlamPackage:
     def __init__(self):
@@ -30,8 +30,8 @@ class FlamPackage:
         print(f'Moving FLAM to flam...')
         shutil.move(clone_dir, flam_dir)
 
-        # Create setup.m file
-        create_setup_m(mhl_dir, "flam", run_startup=True)
+        # Create load.m file
+        create_load_m_and_unload_m(mhl_dir, "flam", run_startup=True)
 
         # Collect exposed symbols recursively (excluding test and paper directories)
         print("Collecting exposed symbols...")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_setup_m
+from mip_build_helpers import clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_load_m_and_unload_m
 
 class KdtreePackage:
     def __init__(self):
@@ -35,8 +35,8 @@ class KdtreePackage:
         print(f"Cleaning up {clone_dir}...")
         shutil.rmtree(clone_dir)
 
-        # Create setup.m
-        create_setup_m(mhl_dir, "kdtree")
+        # Create load.m
+        create_load_m_and_unload_m(mhl_dir, "kdtree")
 
         # Copy compile_kdtree.m to the mhl directory
         package_dir = os.path.dirname(os.path.abspath(__file__))

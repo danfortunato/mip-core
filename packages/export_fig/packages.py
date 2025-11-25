@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_top_level, download_and_extract_zip, create_setup_m
+from mip_build_helpers import collect_exposed_symbols_top_level, download_and_extract_zip, create_load_m_and_unload_m
 
 class ExportFigPackage:
     def __init__(self):
@@ -27,7 +27,7 @@ class ExportFigPackage:
         print(f'Moving export_fig-{self.version} to export_fig...')
         shutil.move(f"export_fig-{self.version}", export_fig_dir)
 
-        create_setup_m(mhl_dir, "export_fig")
+        create_load_m_and_unload_m(mhl_dir, "export_fig")
         # Collect exposed symbols
         print("Collecting exposed symbols...")
         self.exposed_symbols = collect_exposed_symbols_top_level(export_fig_dir, "export_fig")
