@@ -157,7 +157,7 @@ class IndexAssembler:
         html.append('<head>')
         html.append('    <meta charset="UTF-8">')
         html.append('    <meta name="viewport" content="width=device-width, initial-scale=1.0">')
-        html.append('    <title>MATLAB Package Index - MIP</title>')
+        html.append('    <title>MIP Package Index</title>')
         html.append('    <style>')
         html.append('        body {')
         html.append('            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;')
@@ -208,7 +208,7 @@ class IndexAssembler:
         html.append('    </style>')
         html.append('</head>')
         html.append('<body>')
-        html.append('    <h1>MATLAB Package Index</h1>')
+        html.append('    <h1>MIP Package Index</h1>')
         html.append('    <p>Available MATLAB packages for installation via MIP.</p>')
         
         if package_metadata:

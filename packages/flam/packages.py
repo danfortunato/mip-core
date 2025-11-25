@@ -31,7 +31,7 @@ class FlamPackage:
         shutil.move(clone_dir, flam_dir)
 
         # Create load.m file
-        create_load_m_and_unload_m(mhl_dir, "flam", run_startup=True)
+        create_load_m_and_unload_m(mhl_dir, "flam", add_all_subdirs=True)
 
         # Collect exposed symbols recursively (excluding test and paper directories)
         print("Collecting exposed symbols...")
