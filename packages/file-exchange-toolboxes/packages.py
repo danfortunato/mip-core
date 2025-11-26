@@ -32,7 +32,7 @@ class GUILayoutToolboxPackage:
         shutil.copytree(layout_source, layout_dest)
 
         # Copy license.txt
-        license_source = os.path.join(layout_source, "license.txt")
+        license_source = "license.txt"
         license_dest = os.path.join(mhl_dir, "license.txt")
         if not os.path.exists(license_source):
             raise RuntimeError(f"license.txt not found at {license_source}")
@@ -47,7 +47,7 @@ class GUILayoutToolboxPackage:
 class HungarianAlgorithmForLinearAssignmentProblemsPackage:
     def __init__(self):
         self.name = "hungarian-algorithm-for-linear-assignment-problems"
-        self.description = "Hungarian Algorithm for Linear Assignment Problems"
+        self.description = "Hungarian Algorithm for Linear Assignment Problems (V2.3)"
         self.version = "1.4.0.0"
         self.build_number = 1
         self.dependencies = []
@@ -90,6 +90,50 @@ disp(assignment);"""
 
         print("Collecting exposed symbols...")
         self.exposed_symbols = collect_exposed_symbols_top_level(package_dir)
+
+
+# https://www.mathworks.com/matlabcentral/fileexchange/53593-hatchfill2
+class Hatchfill2Package:
+    def __init__(self):
+        self.name = "hatchfill2"
+        self.description = "Fills an area with hatching or speckling"
+        self.version = "3.0.0.0"
+        self.build_number = 1
+        self.dependencies = []
+        self.homepage = "https://www.mathworks.com/matlabcentral/fileexchange/53593-hatchfill2"
+        self.repository = ""
+        self.license = "BSD-2-Clause"
+        self.matlab_tag = "any"
+        self.abi_tag = "none"
+        self.platform_tag = "any"
+
+        # Filled in during prepare
+        self.exposed_symbols = []
+    
+    def prepare(self, mhl_dir: str):
+        zip_url = "https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/53593/versions/10/download/zip"
+        download_and_extract_zip(url=zip_url)
+
+        # Copy license.txt
+        license_source = "license.txt"
+        license_dest = os.path.join(mhl_dir, "license.txt")
+        if not os.path.exists(license_source):
+            raise RuntimeError(f"license.txt not found at {license_source}")
+        shutil.copyfile(license_source, license_dest)
+
+        # copy hatchfill2.m, hatchfill2_demo.m and hatchfill2_demo_data.mat to mhl_dir
+        for filename in ["hatchfill2.m", "hatchfill2_demo.m", "hatchfill2_demo_data.mat"]:
+            source_path = filename
+            dest_path = os.path.join(mhl_dir, filename)
+            if not os.path.exists(source_path):
+                raise RuntimeError(f"{filename} not found at {source_path}")
+            shutil.copyfile(source_path, dest_path)
+
+        create_load_m_and_unload_m(mhl_dir, "hatchfill2")
+
+        print("Collecting exposed symbols...")
+        self.exposed_symbols = collect_exposed_symbols_top_level(mhl_dir)
+
 
 
 if os.environ.get('BUILD_TYPE') == 'standard':
