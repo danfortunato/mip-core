@@ -1,62 +1,51 @@
 import os
 
-
-def create_load_and_unload_scripts(mhl_dir, package_name, subdirs=None, add_all_subdirs=False):
+def generate_recursive_subdir_list(mhl_dir, *, base_dir: str, exclude_dirs=None) -> list[str]:
     """
-    Create load_package.m and unload_package.m files that add/remove package directories to/from the MATLAB path.
+    Generate a list of all subdirectories under base_dir (relative to mhl_dir).
+    
+    Args:
+        mhl_dir: The MHL directory
+        base_dir: The base directory (relative to mhl_dir) to search for subdirectories
+        exclude_dirs: List of directory names to exclude from the search
+
+    Returns:
+        List of subdirectory paths relative to mhl_dir
+    """
+    if exclude_dirs is None:
+        exclude_dirs = []
+    subdirs = []
+    def process_dir(current_dir, relative_path):
+        for entry in os.listdir(current_dir):
+            entry_path = os.path.join(current_dir, entry)
+            if os.path.isdir(entry_path):
+                if entry in exclude_dirs:
+                    continue
+                rel_subdir_path = os.path.join(relative_path, entry)
+                subdirs.append(rel_subdir_path)
+                process_dir(entry_path, rel_subdir_path)
+
+    base_dir_full_path = os.path.join(mhl_dir, base_dir)
+    process_dir(base_dir_full_path, base_dir)
+    return subdirs
+
+def create_load_and_unload_scripts(mhl_dir, *, dirs_to_add_to_path: list[str]):
+    """
+    Create load_package.m and unload_package.m files that add/remove specified directories to/from the MATLAB path.
     
     Args:
         mhl_dir: The MHL directory where load_package.m and unload_package.m will be created
-        package_name: The name of the package (used for the main directory)
-        subdirs: List of subdirectories to add to path (in addition to main package dir)
-                Example: ['tools'] will add both package_name and package_name/tools
-                If None, only the main package directory is added
-        add_all_subdirs: If True, add all subdirectories under the package directory
-                         (should not be used with subdirs argument)
+        dirs_to_add_to_path: List of directories (relative to mhl_dir) to add to the MATLAB path
     """
     load_m_path = os.path.join(mhl_dir, "load_package.m")
     unload_m_path = os.path.join(mhl_dir, "unload_package.m")
     print("Creating load_package.m and unload_package.m...")
 
-    if add_all_subdirs:
-        if subdirs is not None:
-            raise ValueError("Cannot use add_all_subdirs=True with subdirs argument")
-        # Determine subdirs automatically as all directories under package_name recursively
-        package_dir = os.path.join(mhl_dir, package_name)
-        subdirs = []
-        for root, dirs, files in os.walk(package_dir):
-            rel_root = os.path.relpath(root, package_dir)
-            if rel_root != '.':
-                subdirs.append(rel_root)
-
     with open(load_m_path, 'w') as f:
-        f.write(f"% Add {package_name} to the MATLAB path\n")
-        
-        # Add main package directory
-        f.write(f"{package_name}_path = fullfile(fileparts(mfilename('fullpath')), '{package_name}');\n")
-        f.write(f"addpath({package_name}_path);\n")
-        
-        # Add subdirectories if specified
-        if subdirs:
-            for subdir in subdirs:
-                f.write(f"% Add {package_name}/{subdir} to the path\n")
-                f.write(f"{subdir}_path = fullfile({package_name}_path, '{subdir}');\n")
-                f.write(f"addpath({subdir}_path);\n")
+        for dir_rel_path in dirs_to_add_to_path:
+            f.write(f"addpath(fullfile(fileparts(mfilename('fullpath')), '{dir_rel_path}'));\n")
 
     # Create unload_package.m file
     with open(unload_m_path, 'w') as f:
-        f.write(f"% Remove {package_name} from the MATLAB path\n")
-        
-        # Remove subdirectories first (in reverse order for cleanliness)
-        if subdirs:
-            f.write(f"{package_name}_path = fullfile(fileparts(mfilename('fullpath')), '{package_name}');\n")
-            for subdir in reversed(subdirs):
-                f.write(f"% Remove {package_name}/{subdir} from the path\n")
-                f.write(f"{subdir}_path = fullfile({package_name}_path, '{subdir}');\n")
-                f.write(f"rmpath({subdir}_path);\n")
-        else:
-            # If no subdirs, still need to define package_name_path
-            f.write(f"{package_name}_path = fullfile(fileparts(mfilename('fullpath')), '{package_name}');\n")
-        
-        # Remove main package directory last
-        f.write(f"rmpath({package_name}_path);\n")
+        for dir_rel_path in reversed(dirs_to_add_to_path):
+            f.write(f"rmpath(fullfile(fileparts(mfilename('fullpath')), '{dir_rel_path}'));\n")

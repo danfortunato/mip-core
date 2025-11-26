@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_load_and_unload_scripts
+from mip_build_helpers import clone_repository_and_remove_git, collect_exposed_symbols, create_load_and_unload_scripts
 
 class KdtreePackage:
     def __init__(self):
         self.name = "kdtree"
         self.description = "This library provides a minimalist implementation of a kd-tree data structure."
         self.version = "unspecified"
-        self.build_number = 10
+        self.build_number = 11
         self.dependencies = []
         self.homepage = "https://github.com/taiya/kdtree"
         self.repository = "https://github.com/taiya/kdtree"
@@ -37,7 +37,7 @@ class KdtreePackage:
         shutil.rmtree(clone_dir)
 
         # Create load_package.m
-        create_load_and_unload_scripts(mhl_dir, "kdtree")
+        create_load_and_unload_scripts(mhl_dir, dirs_to_add_to_path=["kdtree"])
 
         # Copy compile_kdtree.m to the mhl directory
         package_dir = os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +55,7 @@ class KdtreePackage:
 
         # Collect exposed symbols from kdtree directory (including both .m and .cpp files)
         print("Collecting exposed symbols...")
-        self.exposed_symbols = collect_exposed_symbols_with_extensions(kdtree_dir, ['.m', '.cpp'])
+        self.exposed_symbols = collect_exposed_symbols(kdtree_dir, extensions=['.m', '.cpp'])
 
 if os.environ.get('BUILD_TYPE') == 'standard':
     packages = [KdtreePackage()]

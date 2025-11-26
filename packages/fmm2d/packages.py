@@ -2,14 +2,14 @@
 import os
 import shutil
 import subprocess
-from mip_build_helpers import get_current_platform_tag, clone_repository_and_remove_git, collect_exposed_symbols_with_extensions, create_load_and_unload_scripts
+from mip_build_helpers import get_current_platform_tag, clone_repository_and_remove_git, collect_exposed_symbols, create_load_and_unload_scripts
 
 class Fmm2dPackage:
     def __init__(self, *, platform_tag: str):
         self.name = "fmm2d"
         self.description = "Flatiron Institute Fast Multipole Methods in 2D"
         self.version = "unspecified"
-        self.build_number = 10
+        self.build_number = 11
         self.dependencies = []
         self.homepage = "https://github.com/flatironinstitute/fmm2d"
         self.repository = "https://github.com/flatironinstitute/fmm2d"
@@ -23,7 +23,7 @@ class Fmm2dPackage:
     
     def prepare(self, mhl_dir: str):
         if self.platform_tag != 'linux_x86_64':
-            raise RuntimeError(f"Fmm2dPackage can only be built on linux_x86_64, current platform is {platform_tag}")
+            raise RuntimeError(f"Fmm2dPackage can only be built on linux_x86_64, current platform is {self.platform_tag}")
 
         # Clone the repository
         repository_url = self.repository
@@ -79,11 +79,11 @@ class Fmm2dPackage:
         shutil.rmtree(clone_dir)
 
         # Create load_package.m
-        create_load_and_unload_scripts(mhl_dir, "fmm2d")
+        create_load_and_unload_scripts(mhl_dir, dirs_to_add_to_path=["fmm2d"])
 
         # Collect exposed symbols from fmm2d directory (including .m and .c files)
         print("Collecting exposed symbols...")
-        self.exposed_symbols = collect_exposed_symbols_with_extensions(fmm2d_dir, ['.m', '.c'])
+        self.exposed_symbols = collect_exposed_symbols(mhl_dir + "/fmm2d", extensions=['.m', '.c'])
 
 # The "make matlab" command is not going to work in the github actions runner
 # So we only include this package when the BUILD_TYPE is linux_workstation

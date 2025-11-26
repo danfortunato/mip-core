@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_top_level, clone_repository_and_remove_git, create_load_and_unload_scripts
+from mip_build_helpers import collect_exposed_symbols, clone_repository_and_remove_git, create_load_and_unload_scripts
 
 class ChunkiePackage:
     def __init__(self):
         self.name = "chunkie"
         self.description = "A MATLAB library for solving boundary value problems with integral equations"
         self.version = "unspecified"
-        self.build_number = 10
-        self.dependencies = ["fmm2d", "flam"]
+        self.build_number = 11
+        self.dependencies = ["fmm2d", "FLAM"]
         self.homepage = "https://github.com/fastalgorithms/chunkie"
         self.repository = "https://github.com/fastalgorithms/chunkie"
         self.license = "BSD-3-Clause"
@@ -48,13 +48,12 @@ class ChunkiePackage:
         shutil.rmtree(clone_dir)
 
         # Create load_package.m file that just adds the chunkie directory to path
-        create_load_and_unload_scripts(mhl_dir, "chunkie")
+        create_load_and_unload_scripts(mhl_dir, dirs_to_add_to_path=["chunkie"])
 
         # Collect exposed symbols recursively
         print("Collecting exposed symbols...")
-        self.exposed_symbols = collect_exposed_symbols_top_level(
-            chunkie_dir, 
-            "chunkie"
+        self.exposed_symbols = collect_exposed_symbols(
+            mhl_dir + "/chunkie"
         )
 
 if os.environ.get('BUILD_TYPE') == 'standard':

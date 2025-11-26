@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import os
 import shutil
-from mip_build_helpers import collect_exposed_symbols_multiple_paths, clone_repository_and_remove_git, create_load_and_unload_scripts
+from mip_build_helpers import collect_exposed_symbols, clone_repository_and_remove_git, create_load_and_unload_scripts
 
 class SurfacefunPackage:
     def __init__(self):
         self.name = "surfacefun"
         self.description = "Surfacefun is a MATLAB package for numerically computing with functions on surfaces with high-order accuracy."
         self.version = "unspecified"
-        self.build_number = 10
+        self.build_number = 11
         self.dependencies = ["chebfun"]
         self.homepage = "https://github.com/danfortunato/surfacefun"
         self.repository = "https://github.com/danfortunato/surfacefun"
@@ -30,15 +30,13 @@ class SurfacefunPackage:
         print(f'Moving surfacefun_clone to surfacefun...')
         shutil.move(clone_dir, surfacefun_dir)
 
-        create_load_and_unload_scripts(mhl_dir, "surfacefun", subdirs=['tools'])
+        subdirs = ["surfacefun", "surfacefun/tools"]
+        create_load_and_unload_scripts(mhl_dir, dirs_to_add_to_path=subdirs)
+
         # Collect exposed symbols
         print("Collecting exposed symbols...")
-        
-        tools_dir = os.path.join(surfacefun_dir, "tools")
-        self.exposed_symbols = collect_exposed_symbols_multiple_paths(
-            [surfacefun_dir, tools_dir],
-            ["surfacefun", "surfacefun/tools"]
-        )
+        for subdir in subdirs:
+            self.exposed_symbols.extend(collect_exposed_symbols(mhl_dir + "/" + subdir))
 
 if os.environ.get('BUILD_TYPE') == 'standard':
     packages = [SurfacefunPackage()]
