@@ -137,6 +137,10 @@ class Hatchfill2Package:
 
 
 if os.environ.get('BUILD_TYPE') == 'standard':
-    packages = [GUILayoutToolboxPackage(), HungarianAlgorithmForLinearAssignmentProblemsPackage()]
+    packages = [
+        GUILayoutToolboxPackage(),
+        HungarianAlgorithmForLinearAssignmentProblemsPackage(),
+        Hatchfill2Package()
+    ]
 else:
     packages = []
