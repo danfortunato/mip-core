@@ -1,5 +1,3 @@
-# https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox
-
 #!/usr/bin/env python3
 import os
 import shutil
@@ -10,7 +8,7 @@ class GUILayoutToolboxPackage:
         self.name = "gui-layout-toolbox"
         self.description = "Layout manager for MATLAB graphical user interfaces"
         self.version = "2.4.2"
-        self.build_number = 0
+        self.build_number = 1
         self.dependencies = []
         self.homepage = "https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox"
         self.repository = ""
@@ -31,6 +29,13 @@ class GUILayoutToolboxPackage:
         layout_source = "layout"
         layout_dest = os.path.join(mhl_dir, "layout")
         shutil.copytree(layout_source, layout_dest)
+
+        # Copy license.txt
+        license_source = os.path.join(layout_source, "license.txt")
+        license_dest = os.path.join(mhl_dir, "license.txt")
+        if not os.path.exists(license_source):
+            raise RuntimeError(f"license.txt not found at {license_source}")
+        shutil.copyfile(license_source, license_dest)
 
         create_load_m_and_unload_m(mhl_dir, "layout")
 
