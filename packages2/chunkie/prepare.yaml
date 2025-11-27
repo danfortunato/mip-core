@@ -1,0 +1,21 @@
+name: chunkie
+description: "A MATLAB library for solving boundary value problems with integral equations"
+version: unspecified
+build_number: 20
+dependencies: ["fmm2d", "FLAM"]
+homepage: "https://github.com/fastalgorithms/chunkie"
+repository: "https://github.com/fastalgorithms/chunkie"
+license: "BSD-3-Clause"
+
+prepare:
+  clone_git:
+    url: "https://github.com/fastalgorithms/chunkie"
+    destination: "chunkie"
+  addpaths:
+    - path: "chunkie/chunkie"
+
+builds:
+  - build_type: standard
+    matlab_tag: any
+    abi_tag: none
+    platform_tag: any

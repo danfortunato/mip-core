@@ -1,0 +1,21 @@
+name: hatchfill2
+description: "Fills an area with hatching or speckling"
+version: "3.0.0.0"
+build_number: 20
+dependencies: []
+homepage: "https://www.mathworks.com/matlabcentral/fileexchange/53593-hatchfill2"
+repository: ""
+license: "BSD-2-Clause"
+
+prepare:
+  download_zip:
+    url: "https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/53593/versions/10/download/zip"
+    destination: "hatchfill2"
+  addpaths:
+    - path: "hatchfill2"
+
+builds:
+  - build_type: standard
+    matlab_tag: any
+    abi_tag: none
+    platform_tag: any
