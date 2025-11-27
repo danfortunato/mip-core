@@ -1,7 +1,7 @@
 name: chebfun
 description: "Chebfun is an open-source software system for numerical computing with functions."
 version: unspecified
-build_number: 20
+build_number: 21
 dependencies: []
 homepage: "https://github.com/chebfun/chebfun"
 repository: "https://github.com/chebfun/chebfun"
@@ -10,9 +10,9 @@ license: "BSD-3-Clause"
 prepare:
   download_zip:
     url: "https://github.com/chebfun/chebfun/archive/master.zip"
-    destination: "chebfun-master"
+    destination: "chebfun"
   addpaths:
-    - path: "chebfun-master"
+    - path: "chebfun/chebfun-master"
 
 builds:
   - build_type: standard
