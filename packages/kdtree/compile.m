@@ -2,11 +2,11 @@
 fprintf('Compiling kdtree MEX files...\n');
 
 % Get the kdtree directory
-kdtree_path = fullfile(fileparts(mfilename('fullpath')), 'kdtree');
+kdtree_toolbox_path = fullfile(fileparts(mfilename('fullpath')), 'kdtree/toolbox');
 
 % Change to kdtree directory
 original_dir = pwd;
-cd(kdtree_path);
+cd(kdtree_toolbox_path);
 
 try
     % Find all .cpp files

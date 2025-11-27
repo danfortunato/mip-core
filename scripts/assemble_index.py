@@ -9,7 +9,7 @@ This script:
 4. Generates a human-readable packages.html
 5. Saves both to build/gh-pages/ for GitHub Pages deployment
 
-This script should be run after bundle_and_upload_packages.py
+This script should be run after upload_packages.py
 """
 
 import os

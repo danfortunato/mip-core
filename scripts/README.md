@@ -1,28 +1,29 @@
-# Build and Upload Packages Scripts
+# Build and Upload Packages Scripts (YAML-Based)
 
-This directory contains scripts for building MATLAB packages (.mhl files) and uploading them to a Cloudflare R2 bucket.
+This directory contains scripts for building MATLAB packages (.mhl files) from YAML specifications and uploading them to a Cloudflare R2 bucket.
+
+## Key Differences from scripts/
+
+- **YAML-based**: Packages are defined in `packages/` using declarative `prepare.yaml` files
+- **No mip_build_helpers dependency**: All functionality is self-contained
+- **Explicit path computation**: All paths (including recursive) are computed during prepare
+- **Simple & focused**: Only works with packages/ directory
 
 ## Scripts Overview
 
-The build and upload process has been split into multiple scripts for flexibility:
+The build and upload process consists of multiple scripts:
 
-1. **`prepare_packages.py`** - Builds packages into `.dir` directories
-2. **`compile_packages.m`** - Compiles packages that require MATLAB compilation
-3. **`bundle_and_upload_packages.py`** - Zips `.dir` directories and uploads to R2
-4. **`assemble_index.py`** - Assembles package index from R2 bucket
-
-This separation allows for:
-- Building packages once and uploading multiple times
-- Inspecting built packages before upload
-- Running builds and uploads at different times or on different machines
-- Rebuilding the index independently from package uploads
+1. **`prepare_packages.py`** - Reads YAML specs, downloads/clones code, computes paths, creates load/unload scripts
+2. **`compile_packages.m`** - Compiles packages that require MATLAB compilation (checks YAML for compile_script)
+3. **`bundle_packages.py`** - Zips `.dir` directories into `.mhl` files
+4. **`upload_packages.py`** - Uploads `.mhl` files to R2
+5. **`assemble_index.py`** - Assembles package index from R2 bucket
 
 ## Requirements
 
 ### Python Dependencies
 ```bash
-pip install boto3 requests
-pip install -e mip_build_helpers
+pip install boto3 requests pyyaml
 ```
 
 ### Environment Variables
@@ -33,280 +34,276 @@ The upload script requires the following environment variables for Cloudflare R2
 - `AWS_SECRET_ACCESS_KEY` - Your Cloudflare R2 secret access key
 - `AWS_ENDPOINT_URL` - Your Cloudflare R2 endpoint URL (format: `https://[account-id].r2.cloudflarestorage.com`)
 
+Optional:
+- `BUILD_TYPE` - Type of build to prepare (default: `standard`)
+
 ## Usage
 
-### Two-Step Process (Recommended)
-
-#### Step 1: Prepare Packages
+### Step 1: Prepare Packages
 ```bash
 python scripts/prepare_packages.py
 ```
 
 This will:
-- Check each package against the cloud bucket
-- Skip packages that haven't changed (unless `--force` is used)
-- Build packages into `build/prepared/[wheel_name].dir` directories
-- Each `.dir` contains the built package contents and a `mip.json` metadata file
+- Scan `packages/` for `prepare.yaml` files
+- Check BUILD_TYPE environment variable (defaults to `standard`)
+- Skip packages that don't match BUILD_TYPE
+- Download or clone source code based on YAML specifications
+- Compute all paths (including recursive paths with exclusions)
+- Collect exposed symbols from all paths
+- Create `load_package.m` and `unload_package.m` scripts
+- Generate `mip.json` metadata
+- Output: `.dir` directories in `build/prepared/`
 
-##### Step 2: Compile Packages (MATLAB)
+#### Command Line Options
+
+**Dry Run Mode**
+```bash
+python scripts/prepare_packages.py --dry-run
+```
+
+**Force Rebuild**
+```bash
+python scripts/prepare_packages.py --force
+```
+
+**Custom Output Directory**
+```bash
+python scripts/prepare_packages.py --output-dir /path/to/output
+```
+
+### Step 2: Compile Packages (MATLAB)
 ```bash
 matlab -batch "cd scripts; compile_packages"
 ```
 
 This will:
-- Find all `.dir` directories with `compile.m` files
-- Execute compilation for packages that require it
+- Find all `.dir` directories in `build/prepared/`
+- Read corresponding `prepare.yaml` files from `packages/`
+- Check if BUILD_TYPE matches and if `compile_script` is specified
+- Execute compilation for matching packages
 - Update `mip.json` with compilation duration
 
-#### Step 3: Bundle and Upload
+### Step 3: Bundle Packages
 ```bash
-python scripts/bundle_and_upload_packages.py
+python scripts/bundle_packages.py
 ```
 
 This will:
 - Find all `.dir` directories in `build/prepared/`
-- Zip each into a `.mhl` file
-- Upload both `.mhl` and `.mip.json` files to R2
+- Read `mip.json` metadata from each directory
+- Create `.mhl` files (zipped packages) in `build/bundled/`
+- Create standalone `.mip.json` files for each package
+- Output: `.mhl` and `.mip.json` files in `build/bundled/`
 
-#### Step 4: Assemble Package Index
+#### Command Line Options
+
+**Dry Run Mode**
+```bash
+python scripts/bundle_packages.py --dry-run
+```
+
+**Custom Input/Output Directories**
+```bash
+python scripts/bundle_packages.py --input-dir /path/to/prepared --output-dir /path/to/bundled
+```
+
+### Step 4: Upload Packages
+```bash
+python scripts/upload_packages.py
+```
+
+This will:
+- Find all `.mhl` files in `build/bundled/`
+- Upload each `.mhl` file to Cloudflare R2
+- Upload corresponding `.mip.json` files to R2
+- Requires AWS environment variables (see Environment Variables section)
+
+#### Command Line Options
+
+**Dry Run Mode**
+```bash
+python scripts/upload_packages.py --dry-run
+```
+
+**Custom Input Directory**
+```bash
+python scripts/upload_packages.py --input-dir /path/to/bundled
+```
+
+### Step 5: Assemble Package Index
 ```bash
 python scripts/assemble_index.py
 ```
 
-This will:
-- List all `.mhl.mip.json` files in the R2 bucket
-- Download each `.mip.json` file
-- Assemble them into a consolidated `index.json`
-- Save to `build/gh-pages/index.json` for GitHub Pages deployment
+Same as scripts/assemble_index.py
 
-## Command Line Options
+## YAML Package Specification
 
-### prepare_packages.py
+Each package in `packages/` has a `prepare.yaml` file:
 
-#### Dry Run Mode
-```bash
-python scripts/prepare_packages.py --dry-run
+```yaml
+name: package-name
+description: "Package description"
+version: "1.0.0"
+build_number: 40
+dependencies: []
+homepage: "https://..."
+repository: "https://..."
+license: "License-Type"
+
+# Optional: file extensions to scan for symbols
+symbol_extensions: [".m"]  # or [".m", ".c", ".cpp"]
+
+# Optional: usage examples
+usage_examples:
+  - |
+    mip load package-name
+    % example code
+
+prepare:
+  # Option 1: Download and extract zip
+  download_zip:
+    url: "https://..."
+    destination: "subdirectory"
+  
+  # Option 2: Clone git repository
+  clone_git:
+    url: "https://..."
+    destination: "subdirectory"
+  
+  # Define paths to add to MATLAB path
+  addpaths:
+    - path: "subdirectory"
+    - path: "subdirectory/tools"
+    # Recursive with exclusions:
+    - path: "subdirectory"
+      recursive: true
+      exclude: ["test", "paper"]
+
+builds:
+  - build_type: standard
+    matlab_tag: any
+    abi_tag: none
+    platform_tag: any
+    # Optional: specify compilation script
+    compile_script: compile.m
 ```
-Simulates the build process without actually building anything.
-
-#### Force Rebuild
-```bash
-python scripts/prepare_packages.py --force
-```
-Forces rebuilding of all packages, even if they already exist in the bucket with matching metadata.
-
-#### Custom Output Directory
-```bash
-python scripts/prepare_packages.py --output-dir /path/to/output
-```
-Specifies where to create the `.dir` directories (default: `build/prepared`).
-
-### bundle_and_upload_packages.py
-
-#### Dry Run Mode
-```bash
-python scripts/bundle_and_upload_packages.py --dry-run
-```
-Simulates the upload process without actually uploading anything.
-
-#### Custom Input Directory
-```bash
-python scripts/bundle_and_upload_packages.py --input-dir /path/to/prepared
-```
-Specifies where to find the `.dir` directories (default: `build/prepared`).
 
 ## How It Works
 
-### Step 1: Package Preparation
+### Package Preparation (prepare_packages.py)
 
-#### Smart Caching
+1. **Scan packages/** - Find all directories with `prepare.yaml`
+2. **Filter by BUILD_TYPE** - Only process packages with matching builds
+3. **Download/Clone** - Based on YAML specification
+4. **Compute Paths** - All paths computed upfront, including recursive
+5. **Collect Symbols** - Scan all computed paths for exposed symbols
+6. **Create Scripts** - Generate `load_package.m` and `unload_package.m`
+7. **Generate Metadata** - Create `mip.json` with all package info
 
-Before building a package, the script:
-1. Generates the expected .mhl filename
-2. Checks if `[filename].mip.json` exists at `https://mip-packages.neurosift.app/core/packages/`
-3. Compares metadata fields: `name`, `description`, `version`, `build_number`, `dependencies`, `homepage`, `repository`
-4. Skips build if all fields match
+### Compilation (compile_packages.m)
 
-#### Build Process
+1. **Find .dir directories** - In `build/prepared/`
+2. **Read YAML** - From `packages/{package_name}/prepare.yaml`
+3. **Check BUILD_TYPE** - Only compile if matches
+4. **Check compile_script** - Only if specified in matching build
+5. **Execute** - Run the compile script
+6. **Update Metadata** - Add compilation duration to `mip.json`
 
-For each package that needs building:
-1. Creates a `[wheel_name].dir` directory in `build/prepared/`
-2. Calls `package.build(dir_path)` to populate the directory
-3. Generates `mip.json` with full metadata including:
-   - Core package info (name, description, version, etc.)
-   - Build metadata (timestamp, prepare duration, compile duration)
-   - Platform tags (matlab_tag, abi_tag, platform_tag)
-   - Exposed symbols list
+### Key Features
 
-The `.dir` directories are kept for inspection and can be processed later by the upload script.
+- **Explicit Paths**: All MATLAB paths computed during prepare, not at load time
+- **Recursive Directories**: FLAM-style recursive path generation with exclusions
+- **Symbol Collection**: Configurable file extensions per package
+- **Build Filtering**: Only build packages matching BUILD_TYPE
+- **Platform Aware**: Can specify platform requirements in YAML
 
-### Step 2: Compilation (MATLAB)
+## Example Output
 
-For packages that require compilation:
-1. Finds `.dir` directories containing `compile.m` files
-2. Executes the `compile.m` script in each directory
-3. Updates `mip.json` with compilation duration
-
-### Step 3: Bundle and Upload
-
-For each `.dir` directory:
-1. Reads the `mip.json` metadata file
-2. Creates a `.mhl` file by zipping the directory contents
-3. Creates a standalone `[filename].mip.json` file
-4. Uploads both files to Cloudflare R2
-
-### Step 4: Index Assembly
-
-After all packages are uploaded:
-1. Lists all `.mhl.mip.json` files in the R2 bucket using boto3
-2. Downloads each `.mip.json` file one at a time
-3. Ensures each has an `mhl_url` field (for backwards compatibility)
-4. Assembles all metadata into a consolidated `index.json`
-5. Saves to `build/gh-pages/index.json` for GitHub Pages deployment
-
-This approach ensures the index reflects the true state of the bucket, regardless of which packages were rebuilt in the current run.
-
-### Error Handling
-
-- Both scripts abort on the first failure
-- Full stack traces are printed for debugging
-- The prepare script cleans up failed `.dir` directories
-- The bundle script uses temporary directories that are automatically cleaned up
-
-## GitHub Actions Integration
-
-The repository includes a GitHub Actions workflow (`.github/workflows/build-and-upload-packages.yml`) that:
-- Triggers on pushes to `main` that affect packages, scripts, or build helpers
-- Can be manually triggered with an optional force rebuild
-- Requires three repository secrets to be configured:
-  - `R2_ACCESS_KEY_ID`
-  - `R2_SECRET_ACCESS_KEY`
-  - `R2_ENDPOINT_URL`
-
-### Setting Up GitHub Secrets
-
-1. Go to your repository on GitHub
-2. Navigate to Settings → Secrets and variables → Actions
-3. Add the three required secrets with your Cloudflare R2 credentials
-
-### Manual Workflow Trigger
-
-You can manually trigger the workflow from the Actions tab:
-1. Go to Actions → Build and Upload Packages
-2. Click "Run workflow"
-3. Optionally check "Force rebuild all packages"
-
-## Package Structure
-
-Each package directory should contain a `package.py` file with a `Package` class:
-
-```python
-class Package:
-    def __init__(self):
-        self.name = "package-name"
-        self.description = "Package description"
-        self.version = "1.0.0"
-        self.build_number = 11
-        self.dependencies = []
-        self.homepage = "https://example.com"
-        self.repository = "https://github.com/user/repo"
-        self.matlab_tag = "any"
-        self.abi_tag = "none"
-        self.platform_tag = "any"
-        self.exposed_symbols = []  # Filled during build
-    
-    def build(self, mhl_dir: str):
-        # Build logic here
-        # Populate mhl_dir with package contents
-        # Set self.exposed_symbols
-        pass
-```
-
-## Output Examples
-
-### Step 1: Package Preparation
-
+### Prepare Packages
 ```
 Starting package preparation process...
-Found 3 package(s)
+Found 10 package(s)
 Output directory: /path/to/build/prepared
+BUILD_TYPE: standard
 
 Processing package: chebfun
-  Wheel name: chebfun-1.0.0-R2023b-mip1-any
+  Wheel name: chebfun-unspecified-any-none-any
   Package not found in bucket
-  Output directory: /path/to/build/prepared/chebfun-1.0.0-R2023b-mip1-any.dir
-  Building package...
-  Build completed in 12.34 seconds
+  Output directory: /path/to/build/prepared/chebfun-unspecified-any-none-any.dir
+  Preparing package...
+  Downloading https://github.com/chebfun/chebfun/archive/master.zip...
+  Download complete.
+  Extracting to chebfun-master...
+  Computed 1 path(s)
+  Collected 234 exposed symbol(s)
+  Prepare completed in 5.23 seconds
   Creating mip.json...
-  Successfully prepared chebfun-1.0.0-R2023b-mip1-any.dir
+  Successfully prepared chebfun-unspecified-any-none-any.dir
 
 ✓ All packages prepared successfully
 ```
 
-### Step 3: Bundle and Upload
-
+### Compile Packages
 ```
-Starting package bundle and upload process...
-Found 3 .dir package(s)
-Input directory: /path/to/build/prepared
+Starting package compilation process...
+Prepared packages directory: /path/to/build/prepared
+BUILD_TYPE: standard
+Found 10 .dir package(s)
 
-Processing: chebfun-1.0.0-R2023b-mip1-any.dir
-  MHL filename: chebfun-1.0.0-R2023b-mip1-any.mhl
-  Creating .mhl file...
-  Uploading to R2...
-  Uploaded to s3://mip-packages/core/packages/chebfun-1.0.0-R2023b-mip1-any.mhl
-  Uploaded to s3://mip-packages/core/packages/chebfun-1.0.0-R2023b-mip1-any.mhl.mip.json
-  Successfully bundled and uploaded chebfun-1.0.0-R2023b-mip1-any.mhl
+kdtree-unspecified-any-none-any: Found compile.m - compiling...
+  Running compile.m...
+  Compilation completed in 2.34 seconds
+  Updated mip.json with compile_duration: 2.34s
 
-✓ All packages bundled and uploaded successfully
-```
+Packages requiring compilation: 1
 
-### Step 4: Assemble Index
-
-```
-Starting index assembly process...
-Listing packages in s3://mip-packages/core/packages/
-  Found 5 .mip.json file(s)
-
-Downloading package metadata...
-  [1/5] chebfun-1.0.0-R2023b-mip1-any.mhl.mip.json
-  [2/5] export_fig-1.0.0-R2023b-mip1-any.mhl.mip.json
-  [3/5] kdtree-1.0.0-R2023b-mip1-any.mhl.mip.json
-  [4/5] surfacefun-1.0.0-R2023b-mip1-any.mhl.mip.json
-  [5/5] another-package-1.0.0-R2023b-mip1-any.mhl.mip.json
-
-Successfully downloaded 5 package metadata file(s)
-
-✓ Created index.json with 5 package(s)
-  Saved to: /path/to/build/gh-pages/index.json
-  This will be deployed to GitHub Pages
-
-✓ Index assembled successfully
-```
-
-### Cached Package (No Rebuild)
-
-```
-Processing package: chebfun
-  Wheel name: chebfun-1.0.0-R2023b-mip1-any
-  Package exists with matching metadata
-  Skipping - package already up to date
+✓ All packages compiled successfully
 ```
 
 ## Directory Structure
 
-After running the prepare script:
+After running prepare:
 
 ```
 build/
 └── prepared/
-    ├── chebfun-1.0.0-R2023b-mip1-any.dir/
-    │   ├── mip.json
-    │   └── [package contents]
-    ├── export_fig-1.0.0-R2023b-mip1-any.dir/
-    │   ├── mip.json
-    │   └── [package contents]
-    └── surfacefun-1.0.0-R2023b-mip1-any.dir/
-        ├── mip.json
-        └── [package contents]
+    ├── chebfun-unspecified-any-none-any.dir/
+    │   ├── chebfun-master/
+    │   ├── load_package.m
+    │   ├── unload_package.m
+    │   └── mip.json
+    ├── kdtree-unspecified-any-none-any.dir/
+    │   ├── kdtree/
+    │   ├── compile.m
+    │   ├── load_package.m
+    │   ├── unload_package.m
+    │   └── mip.json
+    └── ...
 ```
+
+## Migrating from scripts/
+
+The main differences:
+
+1. **Package Definition**: Create `packages/{name}/prepare.yaml` instead of `packages/{name}/packages.py`
+2. **No Python Classes**: YAML declarative format instead of Python Package classes
+3. **No Build Helpers**: All functionality is self-contained in scripts/
+4. **Explicit Paths**: All paths computed during prepare, stored in load_package.m
+5. **Symbol Extensions**: Specified in YAML at package level
+
+## GitHub Actions Integration
+
+The repository uses GitHub Actions to automate the build and upload process. The workflow:
+- Sets BUILD_TYPE environment variable
+- Runs prepare_packages.py
+- Runs compile_packages.m (if MATLAB available)
+- Runs bundle_packages.py
+- Runs upload_packages.py
+- Runs assemble_index.py
+
+Repository secrets needed:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- 'AWS_ENDPOINT_URL'

@@ -49,23 +49,27 @@ jobs:
           BUILD_TYPE: standard
         run: |
           if [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
-            python scripts2/prepare_packages.py --force
+            python scripts/prepare_packages.py --force
           else
-            python scripts2/prepare_packages.py
+            python scripts/prepare_packages.py
           fi
       
       - name: Compile packages
         uses: matlab-actions/run-command@v2
         with:
-          command: "cd scripts2; compile_packages"
+          command: "cd scripts; compile_packages"
       
-      - name: Bundle and upload packages
+      - name: Bundle packages
+        run: |
+          python scripts/bundle_packages.py
+      
+      - name: Upload packages
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
         run: |
-          python scripts2/bundle_and_upload_packages.py
+          python scripts/upload_packages.py
       
       - name: Assemble package index
         env:
@@ -73,7 +77,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
         run: |
-          python scripts2/assemble_index.py
+          python scripts/assemble_index.py
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -86,6 +90,14 @@ jobs:
         with:
           name: prepared-packages
           path: build/prepared/
+          if-no-files-found: ignore
+      
+      - name: Upload bundled packages as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundled-packages
+          path: build/bundled/
           if-no-files-found: ignore
 
   deploy:

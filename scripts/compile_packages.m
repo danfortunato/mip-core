@@ -3,19 +3,34 @@
 %
 % This script:
 % 1. Discovers all .dir directories in build/prepared/
-% 2. For each .dir with a compile.m file:
-%    - Executes the compile.m script
-%    - Updates mip.json with compilation duration
-% 3. Runs after prepare_packages.py and before bundle_and_upload_packages.py
+% 2. For each .dir, reads prepare.yaml to check if compilation is needed
+% 3. Checks if BUILD_TYPE environment variable matches
+% 4. Executes the compile script if specified
+% 5. Updates mip.json with compilation duration
 
 function compile_packages()
     % Get the script directory and project root
     scriptDir = fileparts(mfilename('fullpath'));
     projectRoot = fileparts(scriptDir);
     preparedDir = fullfile(projectRoot, 'build', 'prepared');
+    packagesDir = fullfile(projectRoot, 'packages');
+    
+    % Add yamlmatlab to path
+    yamlmatlabPath = fullfile(projectRoot, 'external', 'yamlmatlab');
+    if ~exist(yamlmatlabPath, 'dir')
+        error('yamlmatlab library not found at: %s', yamlmatlabPath);
+    end
+    addpath(yamlmatlabPath);
     
     fprintf('Starting package compilation process...\n');
     fprintf('Prepared packages directory: %s\n', preparedDir);
+    
+    % Get BUILD_TYPE from environment
+    buildType = getenv('BUILD_TYPE');
+    if isempty(buildType)
+        buildType = 'standard';
+    end
+    fprintf('BUILD_TYPE: %s\n', buildType);
     
     % Check if prepared directory exists
     if ~exist(preparedDir, 'dir')
@@ -44,18 +59,57 @@ function compile_packages()
         dirPath = dirPaths{i};
         [~, dirName, ~] = fileparts(dirPath);
         
-        % Check for compile.m file
-        compileMPath = fullfile(dirPath, 'compile.m');
-        if ~exist(compileMPath, 'file')
-            fprintf('\n%s: No compile.m found - skipping\n', dirName);
+        % Extract package name from directory name (format: name-version-...)
+        parts = strsplit(dirName, '-');
+        packageName = parts{1};
+        
+        % Find prepare.yaml for this package
+        yamlPath = fullfile(packagesDir, packageName, 'prepare.yaml');
+        if ~exist(yamlPath, 'file')
+            fprintf('\n%s: No prepare.yaml found - skipping\n', dirName);
             continue;
         end
         
+        % Read YAML file using yamlmatlab
+        try
+            yamlData = yaml.ReadYaml(yamlPath);
+        catch ME
+            fprintf('\n%s: Could not read prepare.yaml - %s - skipping\n', dirName, ME.message);
+            continue;
+        end
+
+        % Check if any build matches current BUILD_TYPE and has compile_script
+        compileScript = '';
+        if isfield(yamlData, 'builds') && iscell(yamlData.builds)
+            for j = 1:length(yamlData.builds)
+                build = yamlData.builds{j};
+                if isfield(build, 'build_type') && strcmp(build.build_type, buildType)
+                    if isfield(build, 'compile_script')
+                        compileScript = build.compile_script;
+                        break;
+                    end
+                end
+            end
+        end
+        
+        if isempty(compileScript)
+            fprintf('\n%s: No compilation needed for BUILD_TYPE=%s\n', dirName, buildType);
+            continue;
+        end
+        
+        % Check if compile script exists
+        compileScriptPath = fullfile(dirPath, compileScript);
+        if ~exist(compileScriptPath, 'file')
+            fprintf('\n%s: Compile script not found: %s - skipping\n', dirName, compileScriptPath);
+            % raise error
+            error('Compile script not found: %s', compileScriptPath);
+        end
+        
         packagesWithCompile = packagesWithCompile + 1;
-        fprintf('\n%s: Found compile.m - compiling...\n', dirName);
+        fprintf('\n%s: Found %s - compiling...\n', dirName, compileScript);
         
         % Compile the package
-        success = compilePackage(dirPath, dirName);
+        success = compilePackage(dirPath, dirName, compileScript);
         if ~success
             error('Compilation failed for %s', dirName);
         end
@@ -65,7 +119,7 @@ function compile_packages()
     fprintf('\n✓ All packages compiled successfully\n');
 end
 
-function success = compilePackage(dirPath, dirName)
+function success = compilePackage(dirPath, dirName, compileScript)
     % Compile a single package
     success = false;
     
@@ -76,11 +130,12 @@ function success = compilePackage(dirPath, dirName)
         % Change to package directory
         cd(dirPath);
         
-        fprintf('  Running compile.m...\n');
+        fprintf('  Running %s...\n', compileScript);
         compileStart = tic;
         
-        % Run the compile.m script
-        compile;
+        % Run the compile script (without .m extension)
+        [~, scriptName, ~] = fileparts(compileScript);
+        eval(scriptName);
         
         compileDuration = toc(compileStart);
         fprintf('  Compilation completed in %.2f seconds\n', compileDuration);
@@ -150,7 +205,6 @@ end
 
 function prettyJson = prettifyJson(jsonText)
     % Simple JSON prettifier
-    % Add newlines and indentation for basic readability
     prettyJson = strrep(jsonText, ',', sprintf(',\n  '));
     prettyJson = strrep(prettyJson, '{', sprintf('{\n  '));
     prettyJson = strrep(prettyJson, '}', sprintf('\n}'));
