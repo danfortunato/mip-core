@@ -17,9 +17,10 @@ git submodule update --init --recursive
 2. Build and test:
 ```bash
 rm -rf build
-python scripts/prepare_packages.py --package package_name --force
+export PACKAGE_NAME=kdtree  # replace with your package name
+python scripts/prepare_packages.py --package $PACKAGE_NAME --force
 matlab -batch "cd scripts; compile_packages"  # if compilation needed
 python scripts/bundle_packages.py
-mip uninstall package_name
-mip install build/bundled/package_name-*.mhl
+mip uninstall $PACKAGE_NAME
+mip install build/bundled/$PACKAGE_NAME-*.mhl
 ```
