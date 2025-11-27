@@ -16,7 +16,10 @@ try
     for i = 1:length(cpp_files)
         cpp_file = cpp_files(i).name;
         fprintf('  Compiling %s...\n', cpp_file);
-        mex('CXXFLAGS=$CXXFLAGS -std=c++14', cpp_file);
+        % Use static linking for C++ standard library to improve portability
+        mex('CXXFLAGS=$CXXFLAGS -std=c++14', ...
+            'LDFLAGS=$LDFLAGS -static-libstdc++ -static-libgcc', ...
+            cpp_file);
     end
     
     fprintf('MEX compilation completed successfully.\n');
