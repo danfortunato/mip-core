@@ -11,17 +11,15 @@ cd(kdtree_toolbox_path);
 try
     % Find all .cpp files
     cpp_files = dir('*.cpp');
-    
+
     % Compile each .cpp file
     for i = 1:length(cpp_files)
         cpp_file = cpp_files(i).name;
         fprintf('  Compiling %s...\n', cpp_file);
-        % Use static linking for C++ standard library to improve portability
-        mex('CXXFLAGS=$CXXFLAGS -std=c++14', ...
-            'LDFLAGS=$LDFLAGS -static-libstdc++ -static-libgcc', ...
+        mex('-v', 'CXXFLAGS=$CXXFLAGS -std=c++11', ...
             cpp_file);
     end
-    
+
     fprintf('MEX compilation completed successfully.\n');
 catch ME
     cd(original_dir);
