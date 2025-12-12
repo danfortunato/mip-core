@@ -55,14 +55,14 @@ jobs:
     #     run: |
     #         import os
     #         import sys
-    #         build_dir = os.path.join(${{ runner.workspace }}, 'build', 'bundled')
+    #         build_dir = os.path.join(${{ github.workspace }}, 'build', 'bundled')
     #         mhl = [for f in os.listdir(build_dir) if f.endswith('.mhl')][0]
     #         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
     #             print(f"mhl={mhl}", file=fh)
     #     shell: python
 
-      - name: Upload mex files
+      - name: Upload .mhl
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.package }}-linux_x86_64.mhl
-          path: ${{ runner.workspace }}/build/bundled/${{ inputs.package }}-*-linux_x86_64.mhl
+          path: ${{ github.workspace }}/build/bundled/${{ inputs.package }}-*-linux_x86_64.mhl
