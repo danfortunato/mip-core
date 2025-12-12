@@ -1,0 +1,68 @@
+name: Build Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package name'     
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          cache: true
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 requests pyyaml
+      
+      - name: Prepare packages
+        env:
+          BUILD_TYPE: standard
+        run: |
+          python scripts/prepare_packages.py --force --package ${{ inputs.package }}
+      
+      - name: Compile packages
+        uses: matlab-actions/run-command@v2
+        with:
+          command: "cd scripts; compile_packages"
+      
+      - name: Bundle packages
+        run: |
+          python scripts/bundle_packages.py
+
+    #   - name: Get .mhl
+    #     id: get-mhl
+    #     run: |
+    #         import os
+    #         import sys
+    #         build_dir = os.path.join(${{ runner.workspace }}, 'build', 'bundled')
+    #         mhl = [for f in os.listdir(build_dir) if f.endswith('.mhl')][0]
+    #         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+    #             print(f"mhl={mhl}", file=fh)
+    #     shell: python
+
+      - name: Upload mex files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.package }}-linux_x86_64.mhl
+          path: ${{ runner.workspace }}/build/bundled/${{ inputs.package }}-*-linux_x86_64.mhl
