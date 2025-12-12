@@ -32,6 +32,8 @@ jobs:
       
       - name: Install dependencies
         run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
           python -m pip install --upgrade pip
           pip install boto3 requests pyyaml
       
