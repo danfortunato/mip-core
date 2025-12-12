@@ -66,3 +66,6 @@ jobs:
         with:
           name: ${{ inputs.package }}-linux_x86_64.mhl
           path: ${{ github.workspace }}/build/bundled/${{ inputs.package }}-*-linux_x86_64.mhl
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
