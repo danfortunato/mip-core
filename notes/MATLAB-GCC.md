@@ -6,37 +6,37 @@ However, MATLAB ships and links against its own versions of `libstdc++` and `lib
 
 Below, we enumerate what version of `libstdc++` MATLAB actually ships with, and therefore what GCC versions are actually supported by MATLAB. The relevant MATLAB libraries are stored in `$MATLAB_ROOT/sys/os/glnxa64/`.
 
-| MATLAB | *claims to support* | GCC   | *but ships with* | libstdc++ | *which supports* | GCC    | *or older* |
-| ------ | ------------------- | ----- | ---------------- | --------- | ---------------- | ------ | ---------- |
-| R2025b |                     | 13.x  |                  | 6.0.30    |                  | 12.1.0 |            |
-| R2025a |                     | 13.x  |                  | 6.0.30    |                  | 12.1.0 |            |
-| R2024b |                     | 13.x  |                  | 6.0.30    |                  | 12.1.0 |            |
-| R2024a |                     | 12.x  |                  | 6.0.28    |                  | 10.1.0 |            |
-| R2023b |                     | 11.x  |                  | 6.0.28    |                  | 10.1.0 |            |
-| R2023a |                     | 10.x  |                  | 6.0.28    |                  | 10.1.0 |            |
-| R2022b |                     | 10.x  |                  | 6.0.28    |                  | 10.1.0 |            |
-| R2022a |                     | 10.x  |                  | 6.0.28    |                  | 10.1.0 |            |
-| R2021b |                     | 9.x   |                  | 6.0.25    |                  | 8.1.0  |            |
-| R2021a |                     | 9.x   |                  | 6.0.25    |                  | 8.1.0  |            |
-| R2020b |                     | 9.x   |                  | 6.0.25    |                  | 8.1.0  |            |
-| R2020a |                     | 6.3.x |                  | 6.0.22    |                  | 6.1.0  |            |
+| MATLAB | *claims to support* | GCC   | *but ships with* | `libstdc++` | *which supports* | GCC    | *or older* |
+| ------ | ------------------- | ----- | ---------------- | ----------- | ---------------- | ------ | ---------- |
+| R2025b |                     | 13.x  |                  | 6.0.30      |                  | 12.1.0 |            |
+| R2025a |                     | 13.x  |                  | 6.0.30      |                  | 12.1.0 |            |
+| R2024b |                     | 13.x  |                  | 6.0.30      |                  | 12.1.0 |            |
+| R2024a |                     | 12.x  |                  | 6.0.28      |                  | 10.1.0 |            |
+| R2023b |                     | 11.x  |                  | 6.0.28      |                  | 10.1.0 |            |
+| R2023a |                     | 10.x  |                  | 6.0.28      |                  | 10.1.0 |            |
+| R2022b |                     | 10.x  |                  | 6.0.28      |                  | 10.1.0 |            |
+| R2022a |                     | 10.x  |                  | 6.0.28      |                  | 10.1.0 |            |
+| R2021b |                     | 9.x   |                  | 6.0.25      |                  | 8.1.0  |            |
+| R2021a |                     | 9.x   |                  | 6.0.25      |                  | 8.1.0  |            |
+| R2020b |                     | 9.x   |                  | 6.0.25      |                  | 8.1.0  |            |
+| R2020a |                     | 6.3.x |                  | 6.0.22      |                  | 6.1.0  |            |
 
 The story for Fortran compilation is better. MATLAB's online documentation correctly states which `gfortran` versions are compatible with the version of `libgfortran` shipped with MATLAB.
 
-| MATLAB | gfortran | libgfortran |
-| ------ | -------- | ----------- |
-| R2025b | 10.x     | 5.0.0       |
-| R2025a | 10.x     | 5.0.0       |
-| R2024b | 10.x     | 5.0.0       |
-| R2024a | 10.x     | 5.0.0       |
-| R2023b | 10.x     | 5.0.0       |
-| R2023a | 10.x     | 5.0.0       |
-| R2022b | 10.x     | 5.0.0       |
-| R2022a | 10.x     | 5.0.0       |
-| R2021b | 8.x      | 5.0.0       |
-| R2021a | 8.x      | 5.0.0       |
-| R2020b | 8.x      | 5.0.0       |
-| R2020a | 6.3.x    | 3.0.0       |
+| MATLAB | GCC   | `libgfortran` |
+| ------ | ----- | ------------- |
+| R2025b | 10.x  | 5.0.0         |
+| R2025a | 10.x  | 5.0.0         |
+| R2024b | 10.x  | 5.0.0         |
+| R2024a | 10.x  | 5.0.0         |
+| R2023b | 10.x  | 5.0.0         |
+| R2023a | 10.x  | 5.0.0         |
+| R2022b | 10.x  | 5.0.0         |
+| R2022a | 10.x  | 5.0.0         |
+| R2021b | 8.x   | 5.0.0         |
+| R2021a | 8.x   | 5.0.0         |
+| R2020b | 8.x   | 5.0.0         |
+| R2020a | 6.3.x | 3.0.0         |
 
 The upshot is that if we compile our MEX binaries on Linux using GCC version 8, then they should work out of the box on MATLAB R2020b and newer on Linux.
 
