@@ -16,9 +16,8 @@ try
     for i = 1:length(cpp_files)
         cpp_file = cpp_files(i).name;
         fprintf('  Compiling %s...\n', cpp_file);
-        % Use static linking for C++ standard library to improve portability
         mex('CXXFLAGS=$CXXFLAGS -std=c++14', ...
-            'LDFLAGS=$LDFLAGS -static-libstdc++ -static-libgcc', ...
+            'LDFLAGS=$LDFLAGS', ...
             cpp_file);
     end
     

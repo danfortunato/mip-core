@@ -17,16 +17,15 @@ concurrency:
 
 jobs:
   build-linux:
-    # use older version of ubuntu to get gcc 8
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     
     steps:
-      - name: Install and switch to GCC 8
+      - name: Install and switch to GCC 10
         run: |
           sudo apt update
-          sudo apt install -y gcc-8 g++-8
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-          sudo update-alternatives --set gcc /usr/bin/gcc-8
+          sudo apt install -y gcc-10 g++-10
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+          sudo update-alternatives --set gcc /usr/bin/gcc-10
         shell: bash
 
       - name: Verify GCC version
