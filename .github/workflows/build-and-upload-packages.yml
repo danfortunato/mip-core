@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build-linux:
     # use older version of ubuntu to get gcc 8
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     
     steps:
       - name: Install and switch to GCC 8
